@@ -5,9 +5,9 @@
 
 int main(){
 
-    int valor = shmctl (32780, IPC_RMID, 0);
+    int valor = shmctl (32780, IPC_RMID, 0); //0 si la llave existe, -1 si no
 
-    printf("%d\n", valor);
+    printf("%d\n", valor); //como estoy eliminando, de ahora en adelante la llave da -1
 
     return 0;
 }
