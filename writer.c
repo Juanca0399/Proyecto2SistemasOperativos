@@ -5,20 +5,25 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h> 
+#include <semaphore.h>
+#include <string.h>
 
 bool isFileFull = false;
+bool run = true;
 int cantWriters = 0;
 int sleepTime = 0;
 int writeTime = 0;
 sem_t mutex;
+pthread_t newThread;
+pthread_t commands;
+int contadorZonaCritica = 0;
 
 void* writeToFile(void * arg);
+void startThread();
+void* listenForCommands(void * arg);
 
 //Para compilar: gcc writer.c -o writer -lpthread -lrt
 int main(int argc, char const *argv[]){
-
-    pthread_t newThread;
 
     sem_init(&mutex, 0, 1); 
 
@@ -36,11 +41,30 @@ int main(int argc, char const *argv[]){
         //crear hilo
         pthread_create(&newThread, NULL, writeToFile, NULL);
         printf("Se creo hilo %d\n", i);
-        //pthread_join(newThread, NULL); //se queda en esta linea hasta que el thread retorne null y creo que eso no deberia pasar, creo que se puede eliminar esto sin problema
+        //sleep(2);
     }
-    pthread_join(newThread, NULL);
-    sem_destroy(&mutex); 
+    pthread_create(&commands, NULL, listenForCommands, NULL);
+    pthread_join(commands, NULL); //Espera hasta que listenForCommands retorne algo para seguir
+
+    pthread_join(newThread, NULL); //Espera a que el ultimo thread que cree termine
+    sem_destroy(&mutex); //destruye el semaforo
     return 0;
+}
+
+void* listenForCommands(void * arg){
+    char command[50] = {0};
+    while(run){
+        printf("Escriba 'fin' para terminar la ejecucion: \n");
+        scanf("%s", command);
+        if(!strcmp(command,"fin")){
+            run = false;
+            printf("Saliendo del programa...\n");
+        } else{
+            printf("Comando no reconocido, intente de nuevo\n");
+        }
+    }
+    
+    return NULL;
 }
 
 void* writeToFile(void * arg){
@@ -51,13 +75,14 @@ void* writeToFile(void * arg){
         printf("\nEntra zona critica\n");
 
         //write
-        printf("HOLA\n");
+        printf("HOLA %d\n", contadorZonaCritica);
 
         sleep(writeTime);
         
         //unlock
         printf("\nSaliendo zona critica...\n"); 
         sem_post(&mutex); 
+        contadorZonaCritica++;
 
         sleep(sleepTime);
     }
