@@ -26,7 +26,7 @@ int main(int argc, char const *argv[]){
     printf("Ingrese la cantidad de segundos para leer: ");
     scanf("%d\n", &readTime);
 
-    //Crea un hilo por cada writer y lo manda a escribir
+    //Crea un hilo por cada reader y lo manda a escribir
     for(int i = 0; i < cantReaders; i++){
         //crear hilo
         pthread_create(&newThread, NULL, readFromFile, NULL);
