@@ -5,8 +5,8 @@
 
 typedef struct message{
     int pid;
-    time_t fechaHora;
-    int linea;
+    time_t date;
+    int line;
 } message;
   
 int main() 
@@ -18,17 +18,17 @@ int main()
     int shmid = shmget(key,2000,0666|IPC_CREAT);
 
 
-    void *archivo = shmat(shmid,NULL,0);
-    int cant_lineas = 0;
-    while(cant_lineas <= 5){
-        message *pMensaje;
+    void *file = shmat(shmid,NULL,0);
+    int numLines = 0;
+    while(numLines <= 5){
+        message *mssg;
         int i = 0;
-        while(i < cant_lineas){
-            pMensaje = archivo+(i*sizeof(message));
+        while(i < numLines){
+            mssg = file+(i*sizeof(message));
             i++;
         }
-        printf("Id: %d\n", pMensaje->linea);
-        cant_lineas++;
+        printf("Id: %d\n", mssg->line);
+        numLines++;
     }
 
     // shmat to attach to shared memory 
@@ -36,7 +36,7 @@ int main()
   
       
     //detach from shared memory  
-    shmdt(archivo); 
+    shmdt(file); 
     
     // destroy the shared memory 
     shmctl(shmid,IPC_RMID,NULL); 

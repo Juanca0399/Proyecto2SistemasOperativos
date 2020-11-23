@@ -8,6 +8,12 @@
 #include <semaphore.h>
 #include <string.h>
 
+typedef struct message{
+    int pid;
+    time_t date;
+    int line;
+} message;
+
 bool isFileFull = false;
 bool run = true;
 int cantWriters = 0;
@@ -18,17 +24,30 @@ pthread_t newThread;
 pthread_t commands;
 int contadorZonaCritica = 0;
 
+key_t key;
+int shmid;
+void *file;
+int numLines = 0;
+
 void* writeToFile(void * arg);
-void startThread();
 void* listenForCommands(void * arg);
 
 //Para compilar: gcc writer.c -o writer -lpthread -lrt
 int main(int argc, char const *argv[]){
 
-    sem_init(&mutex, 0, 1); 
+    sem_init(&mutex, 0, 1);
+
+    // ftok to generate unique key 
+    key = ftok("shmfile",65); 
+  
+    // shmget returns an identifier in shmid 
+    shmid = shmget(key,2000,0666|IPC_CREAT);
+
 
     printf("Ingrese la cantidad de writers que desea crear: ");
     scanf("%d", &cantWriters);
+
+    int numsThreads[cantWriters];
 
     printf("Ingrese la cantidad de segundos del sleep: ");
     scanf("%d", &sleepTime);
@@ -38,8 +57,9 @@ int main(int argc, char const *argv[]){
 
     //Crea un hilo por cada writer y lo manda a escribir
     for(int i = 0; i < cantWriters; i++){
+        numsThreads[i] = i;
         //crear hilo
-        pthread_create(&newThread, NULL, writeToFile, NULL);
+        pthread_create(&newThread, NULL, writeToFile, (void *)numsThreads[i]);
         printf("Se creo hilo %d\n", i);
         //sleep(2);
     }
@@ -76,22 +96,39 @@ cuando writer escribe, saca a todos del archivo
 cuando reader egoista escribe, saca a todos del archivo
 los readers sí dejan que otros estén el archivo
 */
-    if(!isFileFull){
-        //lock
-        sem_wait(&mutex); 
-        printf("\nEntra zona critica\n");
+    int numThread = (int)arg;
+    while(run){
+        if(!isFileFull){
+            //lock
+            sem_wait(&mutex); 
+            printf("\nEntra zona critica\n");
 
-        //write
-        printf("HOLA %d\n", contadorZonaCritica);
+            //write
+            void *file = shmat(shmid,NULL,0); //attach
+            
+            message *mssg;
+            int i = 0;
+            while(i < numLines){
+                mssg = file+(i*sizeof(message));
+                i++;
+            }
+            printf("Thread num %d\n", numThread);
+            printf("i: %d\n",i);
+            mssg->line = i;
+            numLines++;
+            
+            shmdt(file); //detach
 
-        sleep(writeTime);
-        
-        //unlock
-        printf("\nSaliendo zona critica...\n"); 
-        sem_post(&mutex); 
-        contadorZonaCritica++;
 
-        sleep(sleepTime);
+            sleep(writeTime);
+            
+            //unlock
+            printf("\nSaliendo zona critica...\n"); 
+            sem_post(&mutex); 
+            //contadorZonaCritica++;
+
+            sleep(sleepTime);
+        }
     }
 
     return NULL;

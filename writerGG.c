@@ -20,18 +20,18 @@ int main()
     // shmat to attach to shared memory 
 
     //char *str = (char*) shmat(shmid,NULL,0); 
-    int cant_lineas = 0;
-    void *archivo = shmat(shmid,NULL,0);
-    while(cant_lineas <= 5){
-        message *pMensaje;
+    int numLines = 0;
+    void *file = shmat(shmid,NULL,0);
+    while(numLines <= 5){
+        message *mssg;
         int i = 0;
-        while(i < cant_lineas){
-            pMensaje = archivo+(i*sizeof(message));
+        while(i < numLines){
+            mssg = file+(i*sizeof(message));
             i++;
         }
         printf("i: %d\n",i);
-        pMensaje->linea = i;
-        cant_lineas++;
+        mssg->line = i;
+        numLines++;
     }
   
     //printf("Write data: \n");
@@ -41,7 +41,7 @@ int main()
     //printf("Data written in memory: %s\n",str); 
       
     //detach from shared memory  
-    shmdt(archivo); 
+    shmdt(file); 
   
     return 0; 
 } 
