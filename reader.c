@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
+#include <stdint.h>
 
 typedef struct message{
     int pid;
@@ -94,6 +96,7 @@ void* readFromFile(void * arg){
                 i++;
             }
             printf("Id: %d\n", mssg->line);
+            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
             numLines++;
         }
         shmdt(file); //detach

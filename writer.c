@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <string.h>
+#include <time.h>
+#include <stdint.h>
 
 typedef struct message{
     int pid;
@@ -114,7 +116,10 @@ los readers sí dejan que otros estén el archivo
             }
             printf("Thread num %d\n", numThread);
             printf("i: %d\n",i);
+            
             mssg->line = i;
+            mssg->date = time(NULL);
+            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
             numLines++;
             
             shmdt(file); //detach
