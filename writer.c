@@ -68,7 +68,14 @@ void* listenForCommands(void * arg){
 }
 
 void* writeToFile(void * arg){
-
+// while true podria ir aqui, los semaforos tienen que checkear si hay otro write o read en el file (semaforo entre archivos)
+/*
+banderas:
+bandera de run
+cuando writer escribe, saca a todos del archivo
+cuando reader egoista escribe, saca a todos del archivo
+los readers sí dejan que otros estén el archivo
+*/
     if(!isFileFull){
         //lock
         sem_wait(&mutex); 
