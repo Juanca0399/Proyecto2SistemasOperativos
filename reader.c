@@ -89,35 +89,20 @@ void* readFromFile(void * arg){
     int numLines = 0;
 
     while(run){
-        
-        //while(hay un mensaje en la siguiente entrada){
-            //read
-            
-            //lock
-            //sem_wait(&mutex);
-            //printf("\nEntra zona critica\n");
 
-            void *file = shmat(shmid,NULL,0); //attach
-            
-            //while(numLines <= 5){ //cambiar este 5 por el total de lineas
-                message *mssg;
-                int i = 0;
-                while(i < numLines){
-                    mssg = file+(i*sizeof(message));
-                    i++;
-                }
-                printf("Id: %d\n", mssg->line);
-                printf("e\n");
-                printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-                numLines++;
-            //}
-            shmdt(file); //detach
+        void *file = shmat(shmid,NULL,0); //attach
+        message *mssg = file;
+        int i = 0;
+        while(i <= numLines){
+            mssg = file+(i*sizeof(message));
+            i++;
+        }
+        printf("Id: %d\n", mssg->line);
+        printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+        numLines++;
+        shmdt(file); //detach
 
-            sleep(readTime);
-             //unlock
-            //printf("\nSaliendo zona critica...\n"); 
-            //sem_post(&mutex); 
-        //}
+        sleep(readTime);
         sleep(sleepTime);
     }
     return NULL;
