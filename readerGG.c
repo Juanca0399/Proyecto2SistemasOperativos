@@ -2,7 +2,7 @@
 #include <sys/ipc.h> 
 #include <sys/shm.h> 
 #include <stdio.h> 
-
+#include <time.h>
 typedef struct message{
     int pid;
     time_t date;
@@ -21,13 +21,14 @@ int main()
     void *file = shmat(shmid,NULL,0);
     int numLines = 0;
     while(numLines <= 5){
-        message *mssg;
+        message *mssg = file;
         int i = 0;
-        while(i < numLines){
+        while(i <= numLines){
             mssg = file+(i*sizeof(message));
             i++;
         }
         printf("Id: %d\n", mssg->line);
+        printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
         numLines++;
     }
 

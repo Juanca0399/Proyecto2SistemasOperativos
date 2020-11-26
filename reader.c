@@ -8,6 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
+#include <semaphore.h>
 
 typedef struct message{
     int pid;
@@ -22,7 +23,7 @@ bool run = true;
 
 pthread_t commands;
 pthread_t newThread;
-
+//sem_t mutex;
 key_t key;
 int shmid;
 void *file;
@@ -30,15 +31,16 @@ void *file;
 void* readFromFile(void * arg);
 void* listenForCommands(void * arg);
 
-//Para compilar: gcc reader.c -o reader -pthread
+//Para compilar: gcc reader.c -o reader -lpthread -lrt
 int main(int argc, char const *argv[]){
 
+    //sem_init(&mutex, 0, 1);
 
     // ftok to generate unique key 
     key = ftok("shmfile",65); 
   
     // shmget returns an identifier in shmid 
-    shmid = shmget(key,2000,0666|IPC_CREAT);//cambiar el 2000 por lineas*sizeof(message)
+    shmid = shmget(key,2000,0);//cambiar el 2000 por lineas*sizeof(message)
 
     printf("Ingrese la cantidad de readers que desea crear: ");
     scanf("%d", &cantReaders);
@@ -63,7 +65,7 @@ int main(int argc, char const *argv[]){
 
     // destroy the shared memory 
     shmctl(shmid,IPC_RMID,NULL); 
-
+    //sem_destroy(&mutex); //destruye el semaforo
     return 0;
 }
 
@@ -84,26 +86,39 @@ void* listenForCommands(void * arg){
 }
 
 void* readFromFile(void * arg){
-    //while(hay un mensaje en la siguiente entrada){
-        //read
-        void *file = shmat(shmid,NULL,0); //attach
-        int numLines = 0;
-        while(numLines <= 5){
-            message *mssg;
-            int i = 0;
-            while(i < numLines){
-                mssg = file+(i*sizeof(message));
-                i++;
-            }
-            printf("Id: %d\n", mssg->line);
-            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-            numLines++;
-        }
-        shmdt(file); //detach
+    int numLines = 0;
 
-        sleep(readTime);
-    //}
-    sleep(sleepTime);
+    while(run){
+        
+        //while(hay un mensaje en la siguiente entrada){
+            //read
+            
+            //lock
+            //sem_wait(&mutex);
+            //printf("\nEntra zona critica\n");
 
+            void *file = shmat(shmid,NULL,0); //attach
+            
+            //while(numLines <= 5){ //cambiar este 5 por el total de lineas
+                message *mssg;
+                int i = 0;
+                while(i < numLines){
+                    mssg = file+(i*sizeof(message));
+                    i++;
+                }
+                printf("Id: %d\n", mssg->line);
+                printf("e\n");
+                printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+                numLines++;
+            //}
+            shmdt(file); //detach
+
+            sleep(readTime);
+             //unlock
+            //printf("\nSaliendo zona critica...\n"); 
+            //sem_post(&mutex); 
+        //}
+        sleep(sleepTime);
+    }
     return NULL;
 }

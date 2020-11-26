@@ -108,16 +108,16 @@ los readers sí dejan que otros estén el archivo
             //write
             void *file = shmat(shmid,NULL,0); //attach
             
-            message *mssg;
+            message *mssg = file;
             int i = 0;
-            while(i < numLines){
+            while(i <= numLines){
                 mssg = file+(i*sizeof(message));
                 i++;
             }
             printf("Thread num %d\n", numThread);
-            printf("i: %d\n",i);
+            printf("i: %d\n",i-1);
             
-            mssg->line = i;
+            mssg->line = i-1;
             mssg->date = time(NULL);
             printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
             numLines++;

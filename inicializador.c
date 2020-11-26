@@ -7,6 +7,12 @@
 
 extern int errno;
 
+typedef struct message{
+    int pid;
+    time_t date;
+    int line;
+} message;
+
 int main(){
     int lineas = 0;
     int errnum;
@@ -18,7 +24,7 @@ int main(){
 
     printf("%d\n", key);
 
-    int idMem = shmget(key, lineas * 20, IPC_CREAT | 0666);
+    int idMem = shmget(key, lineas * sizeof(), IPC_CREAT | 0666);
 
     if(idMem < 0){
         errnum = errno;
