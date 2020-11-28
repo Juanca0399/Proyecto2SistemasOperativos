@@ -9,8 +9,10 @@
 #include <time.h>
 #include <stdint.h>
 #include <semaphore.h>
+#include <stdlib.h>
 
 typedef struct message{
+    bool isUsed;
     int pid;
     time_t date;
     int line;
@@ -99,17 +101,26 @@ void* readFromFile(void * arg){
 
             void *file = shmat(shmid,NULL,0); //attach
             
-            if(numLines <= 5){ //cambiar este 5 por el total de lineas
                 message *mssg = file;
-                int i = 0;
-                while(i <= numLines){
+                int i = (rand() % 100);
+                if(i <= numLines){
                     mssg = file+(i*sizeof(message));
-                    i++;
+                    //i++;
+                    if(mssg->line != -1){
+                        mssg->line = -1;
+                        printf("Robando linea %d...\n", i);
+                        //printf("Id: %d\n", mssg->line);
+                        //printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+                    } else{
+                        printf("Linea robada\n");
+                    }
+
+                } else{
+                    printf("Linea %d es mayor al archivo\n", i);
                 }
-                printf("Id: %d\n", mssg->line);
-                printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-                numLines++;
-            }
+                
+                //numLines++;
+            
             shmdt(file); //detach
 
             sleep(readTime);

@@ -11,10 +11,16 @@
 #include <semaphore.h>
 
 typedef struct message{
+    bool isUsed;
     int pid;
     time_t date;
     int line;
 } message;
+
+typedef struct info{
+    int lineas;
+    int written;
+} info;
 
 int cantReaders = 0;
 int sleepTime = 0;
@@ -25,9 +31,12 @@ pthread_t commands;
 pthread_t newThread;
 //sem_t mutex;
 key_t key;
+key_t infoKey;
 int shmid;
+int shmidInfo;
 void *file;
-
+void *inf;
+int i = 0;
 void* readFromFile(void * arg);
 void* listenForCommands(void * arg);
 
@@ -37,10 +46,19 @@ int main(int argc, char const *argv[]){
     //sem_init(&mutex, 0, 1);
 
     // ftok to generate unique key 
-    key = ftok("shmfile",65); 
+    key = ftok(".",65);
+    infoKey = ftok(".", 66);
   
     // shmget returns an identifier in shmid 
-    shmid = shmget(key,2000,0);//cambiar el 2000 por lineas*sizeof(message)
+    shmidInfo = shmget(infoKey, 100 * sizeof(info), 0);
+
+    //attach
+    void *infoVoid = shmat(shmidInfo,NULL,0);
+    inf = infoVoid;
+
+    info *sharedInfo = inf;
+
+    shmid = shmget(key,sharedInfo->lineas * sizeof(message),0);//cambiar el 2000 por lineas*sizeof(message)
 
     printf("Ingrese la cantidad de readers que desea crear: ");
     scanf("%d", &cantReaders);
@@ -64,7 +82,9 @@ int main(int argc, char const *argv[]){
     pthread_join(newThread, NULL);
 
     // destroy the shared memory 
-    shmctl(shmid,IPC_RMID,NULL); 
+    shmctl(shmid,IPC_RMID,NULL);
+    shmdt(infoVoid); //detach
+    shmctl(shmidInfo,IPC_RMID,NULL);  
     //sem_destroy(&mutex); //destruye el semaforo
     return 0;
 }
@@ -86,20 +106,24 @@ void* listenForCommands(void * arg){
 }
 
 void* readFromFile(void * arg){
-    int numLines = 0;
+    //int numLines = 0;
 
     while(run){
 
         void *file = shmat(shmid,NULL,0); //attach
         message *mssg = file;
-        int i = 0;
-        while(i <= numLines){
+        info *sharedInfo = inf;
+        if(i <= sharedInfo->written){
             mssg = file+(i*sizeof(message));
             i++;
         }
-        printf("Id: %d\n", mssg->line);
-        printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-        numLines++;
+        if(mssg->line != -1){
+            printf("Id: %d\n", mssg->line);
+            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+        } else {
+            printf("Linea robada\n");
+        }
+        //numLines++;
         shmdt(file); //detach
 
         sleep(readTime);

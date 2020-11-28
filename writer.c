@@ -11,10 +11,16 @@
 #include <stdint.h>
 
 typedef struct message{
+    bool isUsed;
     int pid;
     time_t date;
     int line;
 } message;
+
+typedef struct info{
+    int lineas;
+    int written;
+} info;
 
 bool isFileFull = false;
 bool run = true;
@@ -27,9 +33,14 @@ pthread_t commands;
 int contadorZonaCritica = 0;
 
 key_t key;
+key_t infoKey;
 int shmid;
+int shmidInfo;
 void *file;
+void *inf;
 int numLines = 0;
+int processNumber = 0;
+int i = 0;
 
 void* writeToFile(void * arg);
 void* listenForCommands(void * arg);
@@ -40,10 +51,18 @@ int main(int argc, char const *argv[]){
     sem_init(&mutex, 0, 1);
 
     // ftok to generate unique key 
-    key = ftok("shmfile",65); 
+    key = ftok(".",65);
+    infoKey = ftok(".", 66);
   
     // shmget returns an identifier in shmid 
-    shmid = shmget(key,2000,0666|IPC_CREAT);
+    shmidInfo = shmget(infoKey, 100 * sizeof(info), 0);
+
+    //attach
+    void *infoVoid = shmat(shmidInfo,NULL,0);
+    inf = infoVoid;
+    info *sharedInfo = inf;
+    // shmget returns an identifier in shmid 
+    shmid = shmget(key,sharedInfo->lineas * sizeof(info),0666|IPC_CREAT);
 
 
     printf("Ingrese la cantidad de writers que desea crear: ");
@@ -69,6 +88,7 @@ int main(int argc, char const *argv[]){
     pthread_join(commands, NULL); //Espera hasta que listenForCommands retorne algo para seguir
 
     pthread_join(newThread, NULL); //Espera a que el ultimo thread que cree termine
+    shmdt(infoVoid); //detach
     sem_destroy(&mutex); //destruye el semaforo
     return 0;
 }
@@ -99,28 +119,47 @@ cuando reader egoista escribe, saca a todos del archivo
 los readers sí dejan que otros estén el archivo
 */
     int numThread = (int)arg;
+    info *sharedInfo = inf;
     while(run){
-        if(!isFileFull){
+        if(!(sharedInfo->written == sharedInfo->lineas)){
             //lock
             sem_wait(&mutex); 
             printf("\nEntra zona critica\n");
+            
 
             //write
             void *file = shmat(shmid,NULL,0); //attach
             
             message *mssg = file;
-            int i = 0;
-            while(i <= numLines){
-                mssg = file+(i*sizeof(message));
-                i++;
-            }
+
             printf("Thread num %d\n", numThread);
-            printf("i: %d\n",i-1);
+            printf("i: %d\n",i);
             
-            mssg->line = i-1;
-            mssg->date = time(NULL);
-            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-            numLines++;
+            if(i <= 5){
+                mssg = file+(i*sizeof(message));
+                printf("Is used? %d", mssg->isUsed);
+                if(mssg->isUsed){
+                    mssg->line = processNumber;
+                    printf("processNumber: %d\n", mssg->line);
+                    mssg->date = time(NULL);
+                    printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+                    sharedInfo->written = sharedInfo->written + 1;
+                    processNumber++;
+                    mssg->isUsed = true;
+                } else{
+                    printf("Linea ocupada\n");
+                }
+                
+
+                i = (i+1) % sharedInfo->written;
+            } //else {
+                //printf("Llego al final, volviendo a 0...\n"); 
+                //i = 0;
+            //}            
+            
+            
+            //numLines++;
+        
             
             shmdt(file); //detach
 
@@ -133,6 +172,8 @@ los readers sí dejan que otros estén el archivo
             //contadorZonaCritica++;
 
             sleep(sleepTime);
+        } else{
+            printf("Se paso del limite de lineas posibles\n");
         }
     }
 
