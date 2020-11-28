@@ -98,19 +98,18 @@ void* readFromFile(void * arg){
             //printf("\nEntra zona critica\n");
 
             void *file = shmat(shmid,NULL,0); //attach
-            
-            //while(numLines <= 5){ //cambiar este 5 por el total de lineas
-                message *mssg;
+            int numLines = 0;
+            while(numLines <= 5){ //cambiar este 5 por el total de lineas
+                message *mssg = file;
                 int i = 0;
-                while(i < numLines){
+                while(i <= numLines){
                     mssg = file+(i*sizeof(message));
                     i++;
                 }
                 printf("Id: %d\n", mssg->line);
-                printf("e\n");
                 printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
                 numLines++;
-            //}
+            }
             shmdt(file); //detach
 
             sleep(readTime);

@@ -13,6 +13,10 @@ typedef struct message{
     int line;
 } message;
 
+typedef struct info{
+    
+} info;
+
 int main(){
     int lineas = 0;
     int errnum;
@@ -24,7 +28,7 @@ int main(){
 
     printf("%d\n", key);
 
-    int idMem = shmget(key, lineas * sizeof(), IPC_CREAT | 0666);
+    int idMem = shmget(key, lineas * sizeof(message), IPC_CREAT | 0666);
 
     if(idMem < 0){
         errnum = errno;
