@@ -18,6 +18,7 @@ typedef struct message{
 typedef struct info{
     int lineas;
     int written;
+    int turnEgoista;
 } info;
 
 int main(){
@@ -56,6 +57,26 @@ int main(){
     info *sharedInfo = infoVoid;
     sharedInfo->lineas = lineas;
     sharedInfo->written = 0;
+    sharedInfo->turnEgoista = 0;
+
+    void *memAttach = shmat(idMem,NULL,0);
+    message *memory = memAttach;
+
+    int lineasEscritas = 0;
+    for(int i = 0; i < lineas; i++){
+        
+        int j = 0;
+        while(j <= lineasEscritas){
+            memory= memAttach+(j*sizeof(message));
+            j++;
+        }
+        memory->isUsed = 0;
+        lineasEscritas++;
+    }
+
+    shmdt(memAttach);
+    shmdt(infoVoid);
+
 
     printf("El id de memoria es: %d\n", idMem);
     printf("El id de info es: %d\n", idInfo);

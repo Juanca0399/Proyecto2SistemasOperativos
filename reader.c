@@ -20,6 +20,7 @@ typedef struct message{
 typedef struct info{
     int lineas;
     int written;
+    int turnEgoista;
 } info;
 
 int cantReaders = 0;
@@ -36,7 +37,7 @@ int shmid;
 int shmidInfo;
 void *file;
 void *inf;
-int i = 0;
+
 void* readFromFile(void * arg);
 void* listenForCommands(void * arg);
 
@@ -58,7 +59,7 @@ int main(int argc, char const *argv[]){
 
     info *sharedInfo = inf;
 
-    shmid = shmget(key,sharedInfo->lineas * sizeof(message),0);//cambiar el 2000 por lineas*sizeof(message)
+    shmid = shmget(key,sharedInfo->lineas * sizeof(message),0);
 
     printf("Ingrese la cantidad de readers que desea crear: ");
     scanf("%d", &cantReaders);
@@ -106,26 +107,27 @@ void* listenForCommands(void * arg){
 }
 
 void* readFromFile(void * arg){
-    //int numLines = 0;
-
+    int i = 0;
     while(run){
-
         void *file = shmat(shmid,NULL,0); //attach
+
         message *mssg = file;
         info *sharedInfo = inf;
-        if(i <= sharedInfo->written){
-            mssg = file+(i*sizeof(message));
-            i++;
+        mssg = file + (i*sizeof(message));
+
+        while(!mssg->isUsed){
+            i = (i + 1) % sharedInfo->lineas;
+
+            mssg =  file + (i*sizeof(message));
         }
-        if(mssg->line != -1){
-            printf("Id: %d\n", mssg->line);
-            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-        } else {
-            printf("Linea robada\n");
-        }
-        //numLines++;
+
+        printf("Id: %d\n", mssg->line);
+        printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+        sharedInfo->turnEgoista = 0;
+        i = (i + 1) % sharedInfo->lineas;
         shmdt(file); //detach
 
+        //schleep
         sleep(readTime);
         sleep(sleepTime);
     }
