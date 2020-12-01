@@ -9,6 +9,8 @@
 #include <time.h>
 #include <stdint.h>
 #include <semaphore.h>
+#include <stdlib.h>
+#include <fcntl.h>
 
 typedef struct message{
     bool isUsed;
@@ -27,7 +29,7 @@ int cantReaders = 0;
 int sleepTime = 0;
 int readTime = 0;
 bool run = true;
-
+sem_t *sem;
 
 pthread_t commands;
 pthread_t newThread;
@@ -45,6 +47,14 @@ void* listenForCommands(void * arg);
 //Para compilar: gcc reader.c -o reader -lpthread -lrt
 int main(int argc, char const *argv[]){
     srand(time(0));
+
+    sem_unlink("/sem");
+
+    sem = sem_open("/sem", 0);
+    if (sem == SEM_FAILED){
+        perror("sem_open/sem");
+        exit(EXIT_FAILURE);
+    }
 
     //start semaphore
     sem_init(&mutex, 0, 1);
@@ -113,13 +123,15 @@ void* readFromFile(void * arg){
     info *sharedInfo = inf;
     int i = (rand() % (sharedInfo->lineas));
 
-    sharedInfo->turnEgoista = sharedInfo->turnEgoista + 1;
     while(run){
         
-        if(sharedInfo->turnEgoista < 3){
-
+        if(sharedInfo->turnEgoista < 3 && sharedInfo->written > 0){
             sem_wait(&mutex);
-
+            sem_wait(sem);
+            printf("\nEntra zona critica\n");
+            //sleep
+            sleep(readTime);
+            sharedInfo->turnEgoista = sharedInfo->turnEgoista + 1;
             void *file = shmat(shmid,NULL,0); //attach
 
             message *mssg = file;
@@ -128,24 +140,25 @@ void* readFromFile(void * arg){
 
             while(!mssg->isUsed){
                 i = (rand() % (sharedInfo->lineas));
-
                 mssg =  file + (i*sizeof(message));
             }
 
             printf("Id: %d\n", mssg->line);
             printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-
+            mssg->isUsed = 0;
+            sharedInfo->written = sharedInfo->written - 1;
             i = (i + 1) % sharedInfo->lineas;
             shmdt(file); //detach
 
-            //schleep
-            sleep(readTime);
+            //exit
+            printf("\nSaliendo zona critica...\n"); 
+
+            sem_post(sem);
             sem_post(&mutex);
             sleep(sleepTime);
-
         }
 
     }
-        
+    sem_close(sem);
     return NULL;
 }

@@ -8,7 +8,9 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <semaphore.h>
+#include <fcntl.h>
 
 typedef struct message{
     bool isUsed;
@@ -30,7 +32,7 @@ bool run = true;
 
 pthread_t commands;
 pthread_t newThread;
-//sem_t mutex;
+sem_t *sem;
 key_t key;
 key_t infoKey;
 int shmid;
@@ -44,6 +46,14 @@ void* listenForCommands(void * arg);
 //Para compilar: gcc reader.c -o reader -lpthread -lrt
 int main(int argc, char const *argv[]){
 
+    sem_unlink("/sem");
+
+    sem = sem_open("/sem", O_CREAT, 0660, 0);
+    if (sem == SEM_FAILED){
+        perror("sem_open/sem");
+        exit(EXIT_FAILURE);
+    }
+
     //sem_init(&mutex, 0, 1);
 
     // ftok to generate unique key 
@@ -56,8 +66,7 @@ int main(int argc, char const *argv[]){
     //attach
     void *infoVoid = shmat(shmidInfo,NULL,0);
     inf = infoVoid;
-
-    info *sharedInfo = inf;
+    info *sharedInfo = infoVoid;
 
     shmid = shmget(key,sharedInfo->lineas * sizeof(message),0);
 
@@ -108,28 +117,33 @@ void* listenForCommands(void * arg){
 
 void* readFromFile(void * arg){
     int i = 0;
+    info *sharedInfo = inf;
     while(run){
-        void *file = shmat(shmid,NULL,0); //attach
+        sem_wait(sem);
+        if(sharedInfo->written > 0){
+            void *file = shmat(shmid,NULL,0); //attach
+            message *mssg = file;
+            sharedInfo->turnEgoista = 0;
+            mssg = file + (i*sizeof(message));
 
-        message *mssg = file;
-        info *sharedInfo = inf;
-        mssg = file + (i*sizeof(message));
+            while(!mssg->isUsed){
+                i = (i + 1) % sharedInfo->lineas;
 
-        while(!mssg->isUsed){
+                mssg =  file + (i*sizeof(message));
+            }
+
+            printf("Id: %d\n", mssg->line);
+            printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
+            
             i = (i + 1) % sharedInfo->lineas;
+            shmdt(file); //detach
 
-            mssg =  file + (i*sizeof(message));
+            //schleep
+            sleep(readTime);
+            sem_post(sem);
+            sleep(sleepTime);
         }
-
-        printf("Id: %d\n", mssg->line);
-        printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
-        sharedInfo->turnEgoista = 0;
-        i = (i + 1) % sharedInfo->lineas;
-        shmdt(file); //detach
-
-        //schleep
-        sleep(readTime);
-        sleep(sleepTime);
     }
+    sem_close(sem);
     return NULL;
 }

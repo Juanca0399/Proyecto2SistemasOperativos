@@ -9,6 +9,8 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <fcntl.h>
 
 typedef struct message{
     bool isUsed;
@@ -32,6 +34,7 @@ sem_t mutex;
 pthread_t newThread;
 pthread_t commands;
 int contadorZonaCritica = 0;
+sem_t *sem;
 
 key_t key;
 key_t infoKey;
@@ -48,6 +51,14 @@ void* listenForCommands(void * arg);
 
 //Para compilar: gcc writer.c -o writer -lpthread -lrt
 int main(int argc, char const *argv[]){
+    // Setup de semaforos
+    sem_unlink("/sem");
+
+    sem = sem_open("/sem", O_CREAT, 0660, 1);
+    if (sem == SEM_FAILED){
+        perror("sem_open/sem");
+        exit(EXIT_FAILURE);
+    }
 
     sem_init(&mutex, 0, 1);
 
@@ -121,14 +132,19 @@ los readers sí dejan que otros estén el archivo
 */
     int numThread = (int)arg;
     info *sharedInfo = inf;
-    sharedInfo->turnEgoista = 0;
     while(run){
         //lock
-        sem_wait(&mutex); 
+        sem_wait(&mutex);
+
+        //semaforo
+        sem_wait(sem);
+        sharedInfo->turnEgoista = 0;
         if(sharedInfo->written < sharedInfo->lineas){
             
             
             printf("\nEntra zona critica\n");
+            //sleep
+            sleep(writeTime);
             //write
             void *file = shmat(shmid,NULL,0); //attach
             
@@ -156,16 +172,13 @@ los readers sí dejan que otros estén el archivo
             //exit
             printf("\nSaliendo zona critica...\n"); 
 
-            //sleep
-            sleep(writeTime);
-            
-
         } 
+        sem_post(sem);
         sem_post(&mutex);
 
         //schleep again
         sleep(sleepTime);
     }
-
+    sem_close(sem);
     return NULL;
 }
