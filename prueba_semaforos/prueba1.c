@@ -12,7 +12,8 @@
 #define SEM_NAME2 "/example2"
 #define SEM_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 
-
+sem_t *sem1;
+//sem_t *sem2;
 
 int main(){
 
@@ -20,33 +21,34 @@ int main(){
     sem_unlink(SEM_NAME2);
 
 
-    sem_t *sem1 = sem_open(SEM_NAME1, O_CREAT | O_EXCL, SEM_PERMS, 1);
+    sem1 = sem_open(SEM_NAME1, O_CREAT | O_EXCL, SEM_PERMS, 1);
     if (sem1 == SEM_FAILED){
         perror("error:");
         exit(EXIT_FAILURE);
     }
 
-    sem_t *sem2 = sem_open(SEM_NAME2, O_CREAT | O_EXCL, SEM_PERMS, 0);
+    /*sem2 = sem_open(SEM_NAME2, O_CREAT | O_EXCL, SEM_PERMS, 0);
     if (sem2 == SEM_FAILED){
         perror("error:");
         exit(EXIT_FAILURE);
-    }
+    }*/
 
     int i = 0;
     printf("Start\n");
 
-    while(i < TOTAL){
+    while(1){
         sem_wait(sem1);
         printf("Entrando a zona critica\n");
         sleep(5);
         printf("Hola prueba 1\n");
         printf("Saliendo\n\n");
-        sem_post(sem2);
+        sem_post(sem1);
+        sleep(2);
         i++;
     }
 
     sem_close(sem1);
-    sem_close(sem2);
+    //sem_close(sem2);
    
 
 }

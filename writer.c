@@ -11,6 +11,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+
+#define SEM_NAME "/semaphore"
+#define SEM_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
+
+// Recordar poner sleeps grandes al terminar la zona crítica o usar poco threads
+// Esto para que se vea bonito el programa
 
 typedef struct message{
     bool isUsed;
@@ -44,19 +52,21 @@ void *file;
 void *inf;
 int numLines = 0;
 int processNumber = 0;
-
+FILE * bitacora;
 
 void* writeToFile(void * arg);
 void* listenForCommands(void * arg);
 
 //Para compilar: gcc writer.c -o writer -lpthread -lrt
 int main(int argc, char const *argv[]){
-    // Setup de semaforos
-    sem_unlink("/sem");
 
-    sem = sem_open("/sem", O_CREAT, 0660, 1);
+
+    // Setup de semaforos
+    sem_unlink(SEM_NAME);
+
+    sem = sem_open(SEM_NAME, O_CREAT | O_EXCL, SEM_PERMS, 1);
     if (sem == SEM_FAILED){
-        perror("sem_open/sem");
+        perror("error:");
         exit(EXIT_FAILURE);
     }
 
@@ -98,7 +108,6 @@ int main(int argc, char const *argv[]){
     }
     pthread_create(&commands, NULL, listenForCommands, NULL);
     pthread_join(commands, NULL); //Espera hasta que listenForCommands retorne algo para seguir
-int turnEgoista;
     pthread_join(newThread, NULL); //Espera a que el ultimo thread que cree termine
     shmdt(infoVoid); //detach
     sem_destroy(&mutex); //destruye el semaforo
@@ -156,6 +165,8 @@ los readers sí dejan que otros estén el archivo
                 mssg = file + (i*sizeof(message));
                 
             }
+            bitacora = fopen ("./bitacora.txt","a");
+
             printf("Thread num %d\n", numThread);
             printf("i: %d\n",i);
             
@@ -166,6 +177,17 @@ los readers sí dejan que otros estén el archivo
             mssg->pid = numThread;
             sharedInfo->written = sharedInfo->written + 1;
 
+            fprintf(bitacora, "%s", "El writer: ");
+            fprintf(bitacora, "%d", numThread);
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", "Escribio:\n ");
+            fprintf(bitacora, "%d", mssg->line);
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", asctime(gmtime(&mssg->date)));
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", "==========|==========");
+            fprintf(bitacora, "%s", "\n");
+            fclose(bitacora);
             //detach
             shmdt(file);
 

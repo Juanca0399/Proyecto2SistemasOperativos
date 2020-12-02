@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+#define SEM_NAME "/semaphore"
+#define SEM_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
+
 typedef struct message{
     bool isUsed;
     int pid;
@@ -30,6 +33,7 @@ int sleepTime = 0;
 int readTime = 0;
 bool run = true;
 sem_t *sem;
+int idThread = 0;
 
 pthread_t commands;
 pthread_t newThread;
@@ -40,6 +44,7 @@ int shmid;
 int shmidInfo;
 void *file;
 void *inf;
+FILE * bitacora;
 
 void* readFromFile(void * arg);
 void* listenForCommands(void * arg);
@@ -48,11 +53,13 @@ void* listenForCommands(void * arg);
 int main(int argc, char const *argv[]){
     srand(time(0));
 
-    sem_unlink("/sem");
 
-    sem = sem_open("/sem", 0);
+    // Setup de semaforos
+    //sem_unlink(SEM_NAME);
+
+    sem = sem_open(SEM_NAME, O_RDWR);
     if (sem == SEM_FAILED){
-        perror("sem_open/sem");
+        perror("error:");
         exit(EXIT_FAILURE);
     }
 
@@ -95,10 +102,8 @@ int main(int argc, char const *argv[]){
 
     pthread_join(newThread, NULL);
 
-    // destroy the shared memory 
-    shmctl(shmid,IPC_RMID,NULL);
-    shmdt(infoVoid); //detach
-    shmctl(shmidInfo,IPC_RMID,NULL);  
+    
+    
     sem_destroy(&mutex); //destruye el semaforo
     return 0;
 }
@@ -120,6 +125,8 @@ void* listenForCommands(void * arg){
 }
 
 void* readFromFile(void * arg){
+    int numThread = idThread;
+    idThread++;
     info *sharedInfo = inf;
     int i = (rand() % (sharedInfo->lineas));
 
@@ -130,6 +137,8 @@ void* readFromFile(void * arg){
             sem_wait(sem);
             printf("\nEntra zona critica\n");
             //sleep
+            
+
             sleep(readTime);
             sharedInfo->turnEgoista = sharedInfo->turnEgoista + 1;
             void *file = shmat(shmid,NULL,0); //attach
@@ -142,12 +151,26 @@ void* readFromFile(void * arg){
                 i = (rand() % (sharedInfo->lineas));
                 mssg =  file + (i*sizeof(message));
             }
+            bitacora = fopen ("./bitacora.txt","a");
 
             printf("Id: %d\n", mssg->line);
             printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
             mssg->isUsed = 0;
             sharedInfo->written = sharedInfo->written - 1;
             i = (i + 1) % sharedInfo->lineas;
+
+            fprintf(bitacora, "%s", "El egoista: ");
+            fprintf(bitacora, "%d", numThread);
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", "Se robo:\n ");
+            fprintf(bitacora, "%d", mssg->line);
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", asctime(gmtime(&mssg->date)));
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", "==========|==========");
+            fprintf(bitacora, "%s", "\n");
+            fclose(bitacora);
+
             shmdt(file); //detach
 
             //exit

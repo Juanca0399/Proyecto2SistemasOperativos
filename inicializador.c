@@ -22,6 +22,10 @@ typedef struct info{
 } info;
 
 int main(){
+    FILE * fp;
+    fp = fopen("./bitacora.txt","w");
+    fclose(fp);
+
     int lineas = 0;
     int errnum;
 

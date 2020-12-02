@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 sem_t *sem1;
-sem_t *sem2;
+//sem_t *sem2;
 
 #define TOTAL 5
 #define SEM_NAME1 "/example1"
@@ -26,23 +26,24 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    sem2 = sem_open(SEM_NAME2, O_RDWR);
+    /*sem2 = sem_open(SEM_NAME2, O_RDWR);
     if (sem2 == SEM_FAILED){
         perror("error:");
         exit(EXIT_FAILURE);
-    }
+    }*/
 
     int i = 0;
     printf("Start\n");
 
-    while(i < TOTAL){
+    while(1){
         
-        sem_wait(sem2);
+        sem_wait(sem1);
         printf("Entrando a zona critica\n");
         sleep(5);
         printf("Hola prueba 2\n");
         printf("Saliendo\n\n");
         sem_post(sem1);
+        sleep(2);
         i++;
     }
    

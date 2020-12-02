@@ -12,6 +12,9 @@
 #include <semaphore.h>
 #include <fcntl.h>
 
+#define SEM_NAME "/semaphore"
+#define SEM_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
+
 typedef struct message{
     bool isUsed;
     int pid;
@@ -29,6 +32,7 @@ int cantReaders = 0;
 int sleepTime = 0;
 int readTime = 0;
 bool run = true;
+int idThread = 0;
 
 pthread_t commands;
 pthread_t newThread;
@@ -40,17 +44,21 @@ int shmidInfo;
 void *file;
 void *inf;
 
+FILE * bitacora;
+
 void* readFromFile(void * arg);
 void* listenForCommands(void * arg);
 
 //Para compilar: gcc reader.c -o reader -lpthread -lrt
 int main(int argc, char const *argv[]){
 
-    sem_unlink("/sem");
+    // Setup de semaforos
+    //sem_unlink(SEM_NAME);
+    
 
-    sem = sem_open("/sem", O_CREAT, 0660, 0);
+    sem = sem_open(SEM_NAME, O_RDWR);
     if (sem == SEM_FAILED){
-        perror("sem_open/sem");
+        perror("error:");
         exit(EXIT_FAILURE);
     }
 
@@ -90,11 +98,7 @@ int main(int argc, char const *argv[]){
     pthread_join(commands, NULL); //Espera hasta que listenForCommands retorne algo para seguir
 
     pthread_join(newThread, NULL);
-
-    // destroy the shared memory 
-    shmctl(shmid,IPC_RMID,NULL);
-    shmdt(infoVoid); //detach
-    shmctl(shmidInfo,IPC_RMID,NULL);  
+  
     //sem_destroy(&mutex); //destruye el semaforo
     return 0;
 }
@@ -116,11 +120,14 @@ void* listenForCommands(void * arg){
 }
 
 void* readFromFile(void * arg){
+    int numThread = idThread;
+    idThread++;
     int i = 0;
     info *sharedInfo = inf;
     while(run){
         sem_wait(sem);
         if(sharedInfo->written > 0){
+            printf("\nEntra zona critica\n");
             void *file = shmat(shmid,NULL,0); //attach
             message *mssg = file;
             sharedInfo->turnEgoista = 0;
@@ -131,18 +138,32 @@ void* readFromFile(void * arg){
 
                 mssg =  file + (i*sizeof(message));
             }
+            bitacora = fopen ("./bitacora.txt","a");
 
             printf("Id: %d\n", mssg->line);
             printf("Fecha: %s\n", asctime(gmtime(&mssg->date)));
             
             i = (i + 1) % sharedInfo->lineas;
-            shmdt(file); //detach
 
-            //schleep
+            fprintf(bitacora, "%s", "El reader: ");
+            fprintf(bitacora, "%d", numThread);
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", "Leyo:\n ");
+            fprintf(bitacora, "%d", mssg->line);
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", asctime(gmtime(&mssg->date)));
+            fprintf(bitacora, "%s", "\n");
+            fprintf(bitacora, "%s", "==========|==========");
+            fprintf(bitacora, "%s", "\n");
+            fclose(bitacora);
+
+            shmdt(file); //detach
             sleep(readTime);
-            sem_post(sem);
-            sleep(sleepTime);
+            printf("\nSaliendo zona critica...\n"); 
         }
+        //schleep
+        sem_post(sem);
+        sleep(sleepTime);
     }
     sem_close(sem);
     return NULL;

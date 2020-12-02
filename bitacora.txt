@@ -1,0 +1,78 @@
+El writer: 1
+Escribio:
+ 0
+Wed Dec  2 03:56:11 2020
+
+==========|==========
+El writer: 0
+Escribio:
+ 1
+Wed Dec  2 03:56:14 2020
+
+==========|==========
+El egoista: 0
+Se robo:
+ 0
+Wed Dec  2 03:56:11 2020
+
+==========|==========
+El egoista: 1
+Se robo:
+ 1
+Wed Dec  2 03:56:14 2020
+
+==========|==========
+El writer: 1
+Escribio:
+ 0
+Wed Dec  2 03:56:34 2020
+
+==========|==========
+El reader: 0
+Leyo:
+ 0
+Wed Dec  2 03:56:34 2020
+
+==========|==========
+El reader: 1
+Leyo:
+ 0
+Wed Dec  2 03:56:34 2020
+
+==========|==========
+El writer: 0
+Escribio:
+ 1
+Wed Dec  2 03:56:43 2020
+
+==========|==========
+El egoista: 0
+Se robo:
+ 1
+Wed Dec  2 03:56:43 2020
+
+==========|==========
+El egoista: 1
+Se robo:
+ 0
+Wed Dec  2 03:56:34 2020
+
+==========|==========
+El writer: 1
+Escribio:
+ 0
+Wed Dec  2 03:56:57 2020
+
+==========|==========
+El reader: 0
+Leyo:
+ 0
+Wed Dec  2 03:56:57 2020
+
+==========|==========
+El reader: 1
+Leyo:
+ 0
+Wed Dec  2 03:56:57 2020
+
+==========|==========
