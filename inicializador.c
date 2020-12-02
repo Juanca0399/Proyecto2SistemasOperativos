@@ -19,6 +19,11 @@ typedef struct info{
     int lineas;
     int written;
     int turnEgoista;
+    int currentId;
+    int currentType; //0: ninguno, 1:writer, 2:reader 3:egoista
+    int writers; //Cuantos hay de cada tipo
+    int readers;
+    int egoistas;
 } info;
 
 int main(){
@@ -62,6 +67,11 @@ int main(){
     sharedInfo->lineas = lineas;
     sharedInfo->written = 0;
     sharedInfo->turnEgoista = 0;
+    sharedInfo-> currentId = -1;
+    sharedInfo-> currentType = 0;
+    sharedInfo->writers = 0;
+    sharedInfo->readers = 0;
+    sharedInfo->egoistas = 0;
 
     void *memAttach = shmat(idMem,NULL,0);
     message *memory = memAttach;

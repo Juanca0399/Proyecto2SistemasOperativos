@@ -31,6 +31,11 @@ typedef struct info{
     int lineas;
     int written;
     int turnEgoista;
+    int currentId;
+    int currentType; //0: ninguno, 1:writer, 2:reader 3:egoista
+    int writers; //Cuantos hay de cada tipo
+    int readers;
+    int egoistas;
 } info;
 
 bool isFileFull = false;
@@ -89,6 +94,7 @@ int main(int argc, char const *argv[]){
 
     printf("Ingrese la cantidad de writers que desea crear: ");
     scanf("%d", &cantWriters);
+    sharedInfo->writers = cantWriters;
 
     int numsThreads[cantWriters];
 
@@ -152,6 +158,8 @@ los readers sí dejan que otros estén el archivo
             
             
             printf("\nEntra zona critica\n");
+            sharedInfo->currentId = numThread;
+            sharedInfo->currentType = 1;
             //sleep
             sleep(writeTime);
             //write
@@ -195,6 +203,10 @@ los readers sí dejan que otros estén el archivo
             printf("\nSaliendo zona critica...\n"); 
 
         } 
+
+        sharedInfo->currentId = -1;
+        sharedInfo->currentType = 0;
+
         sem_post(sem);
         sem_post(&mutex);
 

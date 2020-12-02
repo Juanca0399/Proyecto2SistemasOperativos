@@ -26,6 +26,11 @@ typedef struct info{
     int lineas;
     int written;
     int turnEgoista;
+    int currentId;
+    int currentType; //0: ninguno, 1:writer, 2:reader 3:egoista
+    int writers; //Cuantos hay de cada tipo
+    int readers;
+    int egoistas;
 } info;
 
 int cantReaders = 0;
@@ -83,6 +88,7 @@ int main(int argc, char const *argv[]){
 
     printf("Ingrese la cantidad de readers que desea crear: ");
     scanf("%d", &cantReaders);
+    sharedInfo->egoistas = cantReaders;
 
     printf("Ingrese la cantidad de segundos del sleep: ");
     scanf("%d", &sleepTime);
@@ -138,6 +144,8 @@ void* readFromFile(void * arg){
             printf("\nEntra zona critica\n");
             //sleep
             
+            sharedInfo->currentId = numThread;
+            sharedInfo->currentType = 3;
 
             sleep(readTime);
             sharedInfo->turnEgoista = sharedInfo->turnEgoista + 1;
@@ -176,8 +184,12 @@ void* readFromFile(void * arg){
             //exit
             printf("\nSaliendo zona critica...\n"); 
 
+            sharedInfo->currentId = -1;
+            sharedInfo->currentType = 0;
+
             sem_post(sem);
             sem_post(&mutex);
+
             sleep(sleepTime);
         }
 

@@ -22,6 +22,11 @@ typedef struct info{
     int lineas;
     int written;
     int turnEgoista;
+    int currentId;
+    int currentType; //0: ninguno, 1:writer, 2:reader 3:egoista
+    int writers; //Cuantos hay de cada tipo
+    int readers;
+    int egoistas;
 } info;
 
 key_t key;
@@ -33,6 +38,7 @@ void *inf;
 sem_t *sem;
 
 void printMem();
+void printProcesses();
 
 //Para compilar: gcc espia.c -o espia
 int main(int argc, char const *argv[]){
@@ -62,14 +68,127 @@ int main(int argc, char const *argv[]){
     shmid = shmget(key,sharedInfo->lineas * sizeof(message),0);
 
     printMem();
+    printProcesses();
 
     //Prepare to end program:
     // destroy the shared memory 
-    shmctl(shmid,IPC_RMID,NULL);
+    //shmctl(shmid,IPC_RMID,NULL);
     shmdt(infoVoid); //detach
-    shmctl(shmidInfo,IPC_RMID,NULL);  
+    //shmctl(shmidInfo,IPC_RMID,NULL);  
     //sem_destroy(&mutex); //destruye el semaforo
     return 0;
+}
+
+void printProcesses(){
+    info *sharedInfo = inf;
+    printf("Procesos actuales------------------------------------------\n");
+    printf("Tipo de proceso corriendo:"); 
+    if(sharedInfo->currentType == 0){ //Ninguno esta corriendo
+        printf("Ninguno\n");
+    } else if(sharedInfo->currentType == 1){
+        printf("Writer\n");
+    } else if(sharedInfo->currentType == 2){
+        printf("Reader\n");
+    } else if(sharedInfo->currentType == 3){
+        printf("Egoista\n");
+    }
+    printf("Id de proceso corriendo: %d\n\n", sharedInfo->currentId);
+
+    if(sharedInfo->currentType == 0){ //Ninguno esta corriendo
+        printf("Cantidad writers en espera: %d\nCantidad readers en espera: %d\nCantidad egoistas en espera: %d\n",
+        sharedInfo->writers,
+        sharedInfo->readers,
+        sharedInfo->egoistas);
+        printf("Ids writers: ");
+        for(int i = 0; i < sharedInfo->writers; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+        printf("Ids readers: ");
+        for(int i = 0; i < sharedInfo->readers; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+        printf("Ids egoistas: ");
+        for(int i = 0; i < sharedInfo->egoistas; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+    } else if(sharedInfo->currentType == 1){
+        printf("Cantidad writers en espera: %d\nCantidad readers en espera: %d\nCantidad egoistas en espera: %d\n",
+        sharedInfo->writers - 1,
+        sharedInfo->readers,
+        sharedInfo->egoistas);
+
+        printf("Ids writers: ");
+        for(int i = 0; i < sharedInfo->writers; i++){
+            if(sharedInfo->currentId != i){
+                printf("%d, ", i);
+            }
+        }
+        printf("\n");
+        printf("Ids readers: ");
+        for(int i = 0; i < sharedInfo->readers; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+        printf("Ids egoistas: ");
+        for(int i = 0; i < sharedInfo->egoistas; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+
+    } else if(sharedInfo->currentType == 2){
+        printf("Cantidad writers en espera: %d\nCantidad readers en espera: %d\nCantidad egoistas en espera: %d\n",
+        sharedInfo->writers,
+        sharedInfo->readers - 1,
+        sharedInfo->egoistas);
+
+        printf("Ids writers: ");
+        for(int i = 0; i < sharedInfo->writers; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+        printf("Ids readers: ");
+        for(int i = 0; i < sharedInfo->readers; i++){
+            if(sharedInfo->currentId != i){
+                printf("%d, ", i);
+            }
+        }
+        printf("\n");
+        printf("Ids egoistas: ");
+        for(int i = 0; i < sharedInfo->egoistas; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+
+    } else if(sharedInfo->currentType == 3){
+        printf("Cantidad writers en espera: %d\nCantidad readers en espera: %d\nCantidad egoistas en espera: %d\n",
+        sharedInfo->writers,
+        sharedInfo->readers,
+        sharedInfo->egoistas - 1);
+
+        printf("Ids writers: ");
+        for(int i = 0; i < sharedInfo->writers; i++){
+            printf("%d, ", i);
+        }
+        printf("\n");
+        printf("Ids readers: ");
+        for(int i = 0; i < sharedInfo->readers; i++){
+            printf("%d, ", i);  
+        }
+        printf("\n");
+        printf("Ids egoistas: ");
+        for(int i = 0; i < sharedInfo->egoistas; i++){
+            if(sharedInfo->currentId != i){
+                printf("%d, ", i);
+            }
+        }
+        printf("\n");
+
+    }
+
+
 }
 
 void printMem(){

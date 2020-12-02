@@ -26,6 +26,11 @@ typedef struct info{
     int lineas;
     int written;
     int turnEgoista;
+    int currentId;
+    int currentType; //0: ninguno, 1:writer, 2:reader 3:egoista
+    int writers; //Cuantos hay de cada tipo
+    int readers;
+    int egoistas;
 } info;
 
 int cantReaders = 0;
@@ -80,6 +85,7 @@ int main(int argc, char const *argv[]){
 
     printf("Ingrese la cantidad de readers que desea crear: ");
     scanf("%d", &cantReaders);
+    sharedInfo->readers = cantReaders;
 
     printf("Ingrese la cantidad de segundos del sleep: ");
     scanf("%d", &sleepTime);
@@ -128,6 +134,10 @@ void* readFromFile(void * arg){
         sem_wait(sem);
         if(sharedInfo->written > 0){
             printf("\nEntra zona critica\n");
+            
+            sharedInfo->currentId = numThread;
+            sharedInfo->currentType = 2;
+            
             void *file = shmat(shmid,NULL,0); //attach
             message *mssg = file;
             sharedInfo->turnEgoista = 0;
@@ -161,8 +171,12 @@ void* readFromFile(void * arg){
             sleep(readTime);
             printf("\nSaliendo zona critica...\n"); 
         }
+        sharedInfo->currentId = -1;
+        sharedInfo->currentType = 0;
         //schleep
         sem_post(sem);
+
+        
         sleep(sleepTime);
     }
     sem_close(sem);
